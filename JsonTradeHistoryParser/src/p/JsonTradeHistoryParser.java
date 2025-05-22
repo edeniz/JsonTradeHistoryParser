@@ -12,13 +12,14 @@ import java.util.*;
 
 public class JsonTradeHistoryParser {
 
-    private static final String INPUT_FILE = "20250522tmp.json";
+    private static final String INPUT_FILE = "20250430-20250522.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
     private static final double COMMISSION_RATE = 1.478 / 10_000;
 
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
+	private static final Object CONTRACT = "F_TCELL0525";
     static {
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
@@ -41,10 +42,100 @@ public class JsonTradeHistoryParser {
             Map<String, List<Order>> sells = new HashMap<>();
             fillBuyAndSellList(orders, buys, sells);
             processTradesForMatch(buys, sells);
+            
+            List<Order> buyList = buys.getOrDefault(CONTRACT, Collections.emptyList());
+            List<Order> sellList = sells.getOrDefault(CONTRACT, Collections.emptyList());
+            
+            List<Order> unMatchedBuyList = new ArrayList<Order>();
+            List<Order> unMatchedSellList= new ArrayList<Order>();
+            
+            for (Order fail : buyList) {
+                if (fail.remaining() > 0) {
+                	unMatchedBuyList.add(fail);
+                }
+            }
+            for (Order fail : sellList) {
+                if (fail.remaining() > 0) {
+                	unMatchedSellList.add(fail);
+                }
+            }
+  
+            Result best = findBestMatching(unMatchedBuyList, unMatchedSellList);
+            if (best != null) {
+                System.out.println("Best match:");
+                System.out.println("Buys: " + best.buyOrders);
+                System.out.println("Sells: " + best.sellOrders);
+                System.out.println("Units: " + best.totalUnits);
+            } else {
+                System.out.println("No match found.");
+            }
+            
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+    
+    static Result findBestMatching(List<Order> buys, List<Order> sells) {
+        List<List<Order>> allBuySubsets = generateAllSubsets(buys);
+        List<List<Order>> allSellSubsets = generateAllSubsets(sells);
+
+        Result best = null;
+
+        for (List<Order> buySubset : allBuySubsets) {
+            int buyUnits = buySubset.stream().mapToInt(o -> o.units).sum();
+            double buyValue = buySubset.stream().mapToDouble(o -> o.units * o.price).sum();
+
+            for (List<Order> sellSubset : allSellSubsets) {
+                int sellUnits = sellSubset.stream().mapToInt(o -> o.units).sum();
+                if (buyUnits != sellUnits) continue;
+
+                double sellValue = sellSubset.stream().mapToDouble(o -> o.units * o.price).sum();
+                double avgBuy = buyValue / buyUnits;
+                double avgSell = sellValue / sellUnits;
+
+                if (Math.abs(avgSell - avgBuy - 0.15) < 1e-6) {
+                    if (best == null || buyUnits > best.totalUnits) {
+                        best = new Result(buySubset, sellSubset, buyUnits);
+                    }
+                }
+            }
+        }
+
+        return best;
+    }
+
+    
+    static List<List<Order>> generateAllSubsets(List<Order> orders) {
+        List<List<Order>> subsets = new ArrayList<>();
+        subsets.add(new ArrayList<>()); // boþ küme
+
+        for (Order order : orders) {
+            List<List<Order>> newSubsets = new ArrayList<>();
+            for (List<Order> subset : subsets) {
+                List<Order> newSubset = new ArrayList<>(subset);
+                newSubset.add(order);
+                newSubsets.add(newSubset);
+            }
+            subsets.addAll(newSubsets);
+        }
+
+        return subsets.stream()
+            .filter(sub -> !sub.isEmpty()) // boþ kümeyi çýkar
+            .toList();
+    }
+    
+    static class Result {
+        List<Order> buyOrders;
+        List<Order> sellOrders;
+        int totalUnits;
+
+        public Result(List<Order> buyOrders, List<Order> sellOrders, int totalUnits) {
+            this.buyOrders = buyOrders;
+            this.sellOrders = sellOrders;
+            this.totalUnits = totalUnits;
+        }
+    }
+
 
     private static void processTradesForMatch(Map<String, List<Order>> buys, Map<String, List<Order>> sells) {
         int successfulUnits = 0;
