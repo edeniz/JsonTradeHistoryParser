@@ -12,7 +12,7 @@ import java.util.*;
 
 public class JsonTradeHistoryParser {
 
-    private static final String INPUT_FILE = "20250430-20250522.json";
+    private static final String INPUT_FILE = "20250430-20250521.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
@@ -35,7 +35,7 @@ public class JsonTradeHistoryParser {
             printDailySummary(summaryMap);
             printCumulativeSummary(totalSummary);
 
-            System.out.println("\nKademe Özet:");
+            System.out.println("\nKademe Ã–zet:");
 
             Map<String, List<Order>> buys = new HashMap<>();
             Map<String, List<Order>> sells = new HashMap<>();
@@ -57,13 +57,13 @@ public class JsonTradeHistoryParser {
             Collections.sort(buyList);
             Collections.sort(sellList);
 
-            System.out.println("\n" + key + " Alýþ Ýþlemler:");
+            System.out.println("\n" + key + " AlÄ±ÅŸ Ä°ÅŸlemler:");
             for (Order fail : buyList) System.out.println("- " + fail);
 
-            System.out.println("\n" + key + " Satýþ Ýþlemler:");
+            System.out.println("\n" + key + " SatÄ±ÅŸ Ä°ÅŸlemler:");
             for (Order fail : sellList) System.out.println("- " + fail);
 
-            System.out.println("\nBaþarýlý:");
+            System.out.println("\nBaÅŸarÄ±lÄ±:");
             for (int b = 0; b < buyList.size(); b++) {
                 Order buy = buyList.get(b);
                 for (int s = 0; s < sellList.size(); s++) {
@@ -75,8 +75,8 @@ public class JsonTradeHistoryParser {
                         sell.matchedUnits += substractUnit;
                         buy.matchedUnits += substractUnit;
 
-                        System.out.print("--" + String.format("Tür: %s | Units: %d/%d | Fiyat: %.2f", buy.contract, substractUnit, buy.units, buy.price));
-                        System.out.println("-" + String.format("Tür: %s | Units: %d/%d | Fiyat: %.2f", sell.contract, substractUnit, sell.units, sell.price));
+                        System.out.print("--" + String.format("TÃ¼r: %s | Units: %d/%d | Fiyat: %.2f", buy.contract, substractUnit, buy.units, buy.price));
+                        System.out.println("-" + String.format("TÃ¼r: %s | Units: %d/%d | Fiyat: %.2f", sell.contract, substractUnit, sell.units, sell.price));
 
                         successfulUnits += substractUnit;
                         totalProfit += (substractUnit * (sell.price - buy.price) * 100);
@@ -86,14 +86,14 @@ public class JsonTradeHistoryParser {
                 }
             }
 
-            System.out.printf("\n" + key + " Baþarýlý Kontrat Adedi : %d%n", successfulUnits);
+            System.out.printf("\n" + key + " BaÅŸarÄ±lÄ± Kontrat Adedi : %d%n", successfulUnits);
             System.out.printf(key + " Toplam Kar             : %.2f TL%n", totalProfit);
 
-            System.out.println("\n" + key + " Baþarýsýz Alýþ Ýþlemler:");
+            System.out.println("\n" + key + " BaÅŸarÄ±sÄ±z AlÄ±ÅŸ Ä°ÅŸlemler:");
             for (Order fail : buyList)
                 if (fail.remaining() > 0) System.out.println("- " + fail);
 
-            System.out.println("\n" + key + " Baþarýsýz Satýþ Ýþlemler:");
+            System.out.println("\n" + key + " BaÅŸarÄ±sÄ±z SatÄ±ÅŸ Ä°ÅŸlemler:");
             for (Order fail : sellList)
                 if (fail.remaining() > 0) System.out.println("- " + fail);
         }
@@ -111,7 +111,7 @@ public class JsonTradeHistoryParser {
     }
 
     private static void printCumulativeSummary(Summary totalSummary) {
-        System.out.println("\nToplam Kümülatif Özet Bilgiler:");
+        System.out.println("\nToplam KÃ¼mÃ¼latif Ã–zet Bilgiler:");
         System.out.printf("%-18s: %d%n", "Toplam Short", totalSummary.totalShort);
         System.out.printf("%-18s: %d%n", "Toplam Long", totalSummary.totalLong);
         System.out.printf("%-18s: %d%n", "Toplam Units", (int) totalSummary.totalUnits);
@@ -120,7 +120,7 @@ public class JsonTradeHistoryParser {
     }
 
     private static void printDailySummary(Map<String, Summary> summaryMap) {
-        System.out.println("\nGünlük Özet Bilgiler:");
+        System.out.println("\nGÃ¼nlÃ¼k Ã–zet Bilgiler:");
         System.out.printf("%-12s | %-15s | %-7s | %-7s | %-10s | %-15s | %-15s%n", "Tarih", "Kontrat", "Short", "Long", "Units", "Hacim", "Komisyon");
 
         for (Map.Entry<String, Summary> entry : summaryMap.entrySet()) {
@@ -183,7 +183,7 @@ public class JsonTradeHistoryParser {
 
         csvWriter.flush();
         csvWriter.close();
-        System.out.println("CSV dosyasý baþarýyla oluþturuldu: output.csv");
+        System.out.println("CSV dosyasÄ± baÅŸarÄ±yla oluÅŸturuldu: output.csv");
     }
 
     static class Order implements Comparable<Order> {
@@ -209,7 +209,7 @@ public class JsonTradeHistoryParser {
 
         @Override
         public String toString() {
-            return String.format("Tür: %s | Units: %d/%d | Fiyat: %.2f", shortLong, remaining(), units, price);
+            return String.format("TÃ¼r: %s | Units: %d/%d | Fiyat: %.2f", shortLong, remaining(), units, price);
         }
 
         @Override
