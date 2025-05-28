@@ -12,11 +12,13 @@ import java.util.*;
 
 public class JsonTradeHistoryParser {
 
-    private static final String INPUT_FILE = "20250430-20250521.json";
+	//private static final String INPUT_FILE = "20250430-20250527.json";
+    private static final String INPUT_FILE = "20250528tmp.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
     private static final double COMMISSION_RATE = 1.478 / 10_000;
+    private static boolean printAlisSatis = false;
 
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
@@ -57,12 +59,13 @@ public class JsonTradeHistoryParser {
             Collections.sort(buyList);
             Collections.sort(sellList);
 
-            System.out.println("\n" + key + " Alış İşlemler:");
-            for (Order fail : buyList) System.out.println("- " + fail);
-
-            System.out.println("\n" + key + " Satış İşlemler:");
-            for (Order fail : sellList) System.out.println("- " + fail);
-
+            if(printAlisSatis) {
+	            System.out.println("\n" + key + " Alış İşlemler:");
+	            for (Order fail : buyList) System.out.println("- " + fail);
+	
+	            System.out.println("\n" + key + " Satış İşlemler:");
+	            for (Order fail : sellList) System.out.println("- " + fail);
+            }
             System.out.println("\nBaşarılı:");
             for (int b = 0; b < buyList.size(); b++) {
                 Order buy = buyList.get(b);
@@ -89,13 +92,29 @@ public class JsonTradeHistoryParser {
             System.out.printf("\n" + key + " Başarılı Kontrat Adedi : %d%n", successfulUnits);
             System.out.printf(key + " Toplam Kar             : %.2f TL%n", totalProfit);
 
+        	int totalRemaining = 0;
+        	double totalAmount = 0;
             System.out.println("\n" + key + " Başarısız Alış İşlemler:");
             for (Order fail : buyList)
-                if (fail.remaining() > 0) System.out.println("- " + fail);
-
+                if (fail.remaining() > 0) {
+                	System.out.print("\n- " + fail);
+                	totalRemaining += fail.remaining();
+                	totalAmount    += fail.remaining()*fail.price;
+                }
+            System.out.println("\n" + key + " Başarısız Alış => Toplam Adet:"+totalRemaining+" , Average:"+(totalAmount/totalRemaining));
+            
+            
+        	totalRemaining = 0;
+        	totalAmount = 0;
             System.out.println("\n" + key + " Başarısız Satış İşlemler:");
             for (Order fail : sellList)
-                if (fail.remaining() > 0) System.out.println("- " + fail);
+                if (fail.remaining() > 0) {
+                	System.out.print("\n- " + fail);
+                	totalRemaining += fail.remaining();
+                	totalAmount    += fail.remaining()*fail.price;
+                }
+            System.out.println("\n" + key + " Başarısız Satış => Toplam Adet:"+totalRemaining+" , Average:"+(totalAmount/totalRemaining));
+
         }
     }
 
