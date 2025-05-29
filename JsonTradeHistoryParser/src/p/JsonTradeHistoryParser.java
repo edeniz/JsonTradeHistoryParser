@@ -13,8 +13,8 @@ import java.util.*;
 public class JsonTradeHistoryParser {
 	//Elde kalanların satılması gereken fiyat: (ToplamAlisTutari-ToplamSatisTutari)/(toplamAlisLot-ToplamSatisLot)   + 0,15
 	
-	private static final String INPUT_FILE = "20250430-20250528.json";
-	//private static final String INPUT_FILE = "20250528tmp.json";
+	//private static final String INPUT_FILE = "20250430-20250528.json";
+	private static final String INPUT_FILE = "20250529tmp.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
@@ -152,8 +152,8 @@ public class JsonTradeHistoryParser {
                         sell.matchedUnits += substractUnit;
                         buy.matchedUnits += substractUnit;
 
-                        System.out.print("--" + String.format("Tür: %s | Units: %d/%d | Fiyat: %.2f", buy.contract, substractUnit, buy.units, buy.price));
-                        System.out.println("-" + String.format("Tür: %s | Units: %d/%d | Fiyat: %.2f", sell.contract, substractUnit, sell.units, sell.price));
+                        System.out.print("--"    + String.format("%s | %2d/%-2d | %.2f", buy.contract, substractUnit, buy.units, buy.price));
+                        System.out.println(" - " + String.format("%s | %2d/%-2d | %.2f", sell.contract, substractUnit, sell.units, sell.price));
 
                         successfulUnits += substractUnit;
                         totalProfit += (substractUnit * (sell.price - buy.price) * 100);
@@ -285,7 +285,7 @@ public class JsonTradeHistoryParser {
 
         @Override
         public String toString() {
-            return String.format("Tür: %s | Units: %d/%d | Fiyat: %.2f", shortLong, remaining(), units, price);
+            return String.format("%s | %s | %d/%d | %.2f", contract, shortLong, remaining(), units, price);
         }
 
         @Override
