@@ -11,14 +11,18 @@ import java.text.NumberFormat;
 import java.util.*;
 
 public class JsonTradeHistoryParser {
-
-	//private static final String INPUT_FILE = "20250430-20250527.json";
-    private static final String INPUT_FILE = "20250528tmp.json";
+	//Elde kalanların satılması gereken fiyat: (ToplamAlisTutari-ToplamSatisTutari)/(toplamAlisLot-ToplamSatisLot)   + 0,15
+	
+	private static final String INPUT_FILE = "20250430-20250528.json";
+	//private static final String INPUT_FILE = "20250528tmp.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
     private static final double COMMISSION_RATE = 1.478 / 10_000;
-    private static boolean printAlisSatis = false;
+    private static final boolean printAlisSatis = false;
+    private static final boolean generateOutput = false;
+    private static final boolean aggregateOrders = true;
+    private static final List<String> contractsToFilter = List.of("F_TCELL0525", "F_TCELL0x25");
 
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
@@ -29,28 +33,98 @@ public class JsonTradeHistoryParser {
     public static void main(String[] args) {
         try {
             ArrayNode orderList = parseOrderListFromJsonFile();
+            
+            generateCSV(orderList);
+
+            
+            List<Order> orders = populateOrders(orderList);
+            orders = aggregateOrders(orders);
+            
             Map<String, Summary> summaryMap = new TreeMap<>();
             Summary totalSummary = new Summary();
-            List<Order> orders = new ArrayList<>();
-            generateCSV(orderList, summaryMap, totalSummary, orders);
-
+            populateSummaryMap(orders, summaryMap, totalSummary);
             printDailySummary(summaryMap);
             printCumulativeSummary(totalSummary);
 
-            System.out.println("\nKademe Özet:");
 
             Map<String, List<Order>> buys = new HashMap<>();
             Map<String, List<Order>> sells = new HashMap<>();
-            fillBuyAndSellList(orders, buys, sells);
+            generateBuyAndSellList(orders, buys, sells);
+            
             processTradesForMatch(buys, sells);
+            
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
     
+    private static void populateSummaryMap(List<Order> orders, Map<String, Summary> summaryMap, Summary totalSummary) {
+        for (Order order : orders) {
+            String key = order.date + "|" + order.contract;
+            Summary summary = summaryMap.getOrDefault(key, new Summary());
 
+            int units = order.units;
+            double price = order.price;
+            double volume = units * price * 100;
+            double commission = volume * COMMISSION_RATE;
 
+            if (order.shortLong.equals("KISA")) {
+                summary.totalShort += units;
+                totalSummary.totalShort += units;
+            } else if (order.shortLong.equals("UZUN")) {
+                summary.totalLong += units;
+                totalSummary.totalLong += units;
+            }
+
+            summary.totalUnits += units;
+            summary.totalVolume += volume;
+            summary.totalCommission += commission;
+
+            totalSummary.totalUnits += units;
+            totalSummary.totalVolume += volume;
+            totalSummary.totalCommission += commission;
+
+            summaryMap.put(key, summary);
+        }
+    }
+
+    private static List<Order> populateOrders(ArrayNode orderList) {
+    	List<Order> orders = new ArrayList<Order>();
+        for (JsonNode order : orderList) {
+            String rawDate = order.path("TRANSACTION_DATE").asText();
+            String date = rawDate.length() >= 10 ? rawDate.substring(0, 10) : rawDate;
+            String shortLong = order.path("SHORT_LONG").asText().toUpperCase(Locale.ROOT);
+            String contract = order.path("CONTRACT").asText();
+            int units = (int) order.path("UNITS").asDouble();
+            double price = order.path("PRICE").asDouble();
+            
+            if(contractsToFilter.isEmpty() || contractsToFilter.contains(contract))
+            	orders.add(new Order(date, contract, shortLong, units, price));
+        }
+        return orders;
+    }
+    
+    private static List<Order> aggregateOrders(List<Order> orders) {
+    	if(!aggregateOrders)
+    		return orders;
+    	
+        Map<String, Order> aggregatedMap = new LinkedHashMap<>();
+        for (Order order : orders) {
+            String key = order.contract + "|" + order.shortLong + "|" + order.price;
+            if (aggregatedMap.containsKey(key)) {
+                Order existing = aggregatedMap.get(key);
+                existing.units = existing.units + order.units;
+            } else {
+                // Yeni nesne kopyası ile ekliyoruz ki orijinal liste etkilenmesin
+                aggregatedMap.put(key, new Order(order.date,order.contract,order.shortLong,order.units,order.price));
+            }
+        }
+        return new ArrayList<>(aggregatedMap.values());
+    }
+
+    
     private static void processTradesForMatch(Map<String, List<Order>> buys, Map<String, List<Order>> sells) {
+    	
         int successfulUnits = 0;
         double totalProfit = 0.0;
         for (String key : buys.keySet()) {
@@ -94,31 +168,31 @@ public class JsonTradeHistoryParser {
 
         	int totalRemaining = 0;
         	double totalAmount = 0;
-            System.out.println("\n" + key + " Başarısız Alış İşlemler:");
+            System.out.print("\n" + key + " Başarısız Alış İşlemler:");
             for (Order fail : buyList)
                 if (fail.remaining() > 0) {
                 	System.out.print("\n- " + fail);
                 	totalRemaining += fail.remaining();
                 	totalAmount    += fail.remaining()*fail.price;
                 }
-            System.out.println("\n" + key + " Başarısız Alış => Toplam Adet:"+totalRemaining+" , Average:"+(totalAmount/totalRemaining));
-            
+            System.out.println("\n" + key + " Başarısız Alış => Toplam Adet:" + totalRemaining + ", Average:" + formatter.format(totalAmount / totalRemaining));
+
             
         	totalRemaining = 0;
         	totalAmount = 0;
-            System.out.println("\n" + key + " Başarısız Satış İşlemler:");
+            System.out.print("\n" + key + " Başarısız Satış İşlemler:");
             for (Order fail : sellList)
                 if (fail.remaining() > 0) {
                 	System.out.print("\n- " + fail);
                 	totalRemaining += fail.remaining();
                 	totalAmount    += fail.remaining()*fail.price;
                 }
-            System.out.println("\n" + key + " Başarısız Satış => Toplam Adet:"+totalRemaining+" , Average:"+(totalAmount/totalRemaining));
+            System.out.println("\n" + key + " Başarısız Satış => Toplam Adet:"+totalRemaining + ", Average:" + formatter.format(totalAmount / totalRemaining));
 
         }
     }
 
-    private static void fillBuyAndSellList(List<Order> orders, Map<String, List<Order>> buys, Map<String, List<Order>> sells) {
+    private static void generateBuyAndSellList(List<Order> orders, Map<String, List<Order>> buys, Map<String, List<Order>> sells) {
         for (Order o : orders) {
             String key = o.contract;
             if (o.shortLong.equals("UZUN")) {
@@ -160,50 +234,28 @@ public class JsonTradeHistoryParser {
         return orderList;
     }
 
-    private static void generateCSV(ArrayNode orderList, Map<String, Summary> summaryMap, Summary totalSummary, List<Order> orders) throws IOException {
-        FileWriter csvWriter = new FileWriter(OUTPUT_FILE);
-        csvWriter.append("date,contract,shortLong,units,price\n");
+    private static void generateCSV(ArrayNode orderList) throws IOException {
+    	if(!generateOutput)
+    		return;
+    	
+        try (FileWriter csvWriter = new FileWriter(OUTPUT_FILE)) {
+            csvWriter.append("date,contract,shortLong,units,price\n");
 
-        for (JsonNode order : orderList) {
-            String rawDate = order.path("TRANSACTION_DATE").asText();
-            String date = rawDate.length() >= 10 ? rawDate.substring(0, 10) : rawDate;
-            String shortLong = order.path("SHORT_LONG").asText().toUpperCase(Locale.ROOT);
-            String contract = order.path("CONTRACT").asText();
-            int units = (int) order.path("UNITS").asDouble();
-            double price = order.path("PRICE").asDouble();
+            for (JsonNode order : orderList) {
+                String rawDate = order.path("TRANSACTION_DATE").asText();
+                String date = rawDate.length() >= 10 ? rawDate.substring(0, 10) : rawDate;
+                String shortLong = order.path("SHORT_LONG").asText().toUpperCase(Locale.ROOT);
+                String contract = order.path("CONTRACT").asText();
+                int units = (int) order.path("UNITS").asDouble();
+                double price = order.path("PRICE").asDouble();
 
-            csvWriter.append(String.format(Locale.US, "%s,%s,%s,%d,%.2f\n", date, contract, shortLong, units, price));
-
-            String key = date + "|" + contract;
-            Summary summary = summaryMap.getOrDefault(key, new Summary());
-
-            if (shortLong.equals("KISA")) {
-                summary.totalShort += units;
-                totalSummary.totalShort += units;
-            } else if (shortLong.equals("UZUN")) {
-                summary.totalLong += units;
-                totalSummary.totalLong += units;
+                csvWriter.append(String.format(Locale.US, "%s,%s,%s,%d,%.2f\n", date, contract, shortLong, units, price));
             }
 
-            double volume = units * price * 100;
-            double commission = volume * COMMISSION_RATE;
-
-            summary.totalUnits += units;
-            summary.totalVolume += volume;
-            summary.totalCommission += commission;
-
-            totalSummary.totalUnits += units;
-            totalSummary.totalVolume += volume;
-            totalSummary.totalCommission += commission;
-
-            summaryMap.put(key, summary);
-            orders.add(new Order(date, contract, shortLong, units, price));
+            System.out.println("CSV dosyası başarıyla oluşturuldu: output.csv");
         }
-
-        csvWriter.flush();
-        csvWriter.close();
-        System.out.println("CSV dosyası başarıyla oluşturuldu: output.csv");
     }
+
 
     static class Order implements Comparable<Order> {
         String date;
@@ -222,7 +274,12 @@ public class JsonTradeHistoryParser {
             this.price = price;
         }
 
-        public int remaining() {
+        public void units (int i) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		public int remaining() {
             return this.units - this.matchedUnits;
         }
 
