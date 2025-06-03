@@ -30,7 +30,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 public class JsonTradeHistoryParser {
 	//Elde kalanların satılması gereken fiyat: (ToplamAlisTutari-ToplamSatisTutari)/(toplamAlisLot-ToplamSatisLot)   + 0,15
 	
-	private static final String XLSX_FILE = "Book1.xlsx";
+	private static final String XLSX_FILE = "Book2.xlsx";
 	//private static final String INPUT_FILE = "20250430-20250528.json";
 	private static final String INPUT_FILE = "202506tmp.json";
     private static final String OUTPUT_FILE = "output.csv";
@@ -273,7 +273,7 @@ public class JsonTradeHistoryParser {
 					continue; // skip header
 				}
 
-				Date rawDate = row.getCell(13).getDateCellValue();
+				Date rawDate = row.getCell(1).getDateCellValue();
 
 				// AY-GÜN-YIL gibi yorumla
 				SimpleDateFormat dayMonthYear = new SimpleDateFormat("MM.dd.yyyy");
@@ -284,11 +284,11 @@ public class JsonTradeHistoryParser {
 
 				// şimdi formatla
 				String date = new SimpleDateFormat("yyyy-MM-dd").format(correctedDate); // örn. "2025-06-03"
-				String contract = row.getCell(3).toString(); // Sözleşme
-				String aOrS = row.getCell(4).toString(); // A/S
+				String contract = row.getCell(2).toString(); // Sözleşme
+				String aOrS = row.getCell(3).toString(); // A/S
 				String shortLong = aOrS.equalsIgnoreCase("Alış") ? "UZUN" : "KISA";
-				int units = (int) row.getCell(9).getNumericCellValue(); // G.Miktar
-				double price = Double.parseDouble(row.getCell(7).toString().replace(",", ".")); // Fiyat
+				int units = (int) row.getCell(5).getNumericCellValue(); // G.Miktar
+				double price = Double.parseDouble(row.getCell(4).toString().replace(",", ".")); // Fiyat
 
 				Order order = new Order(date, contract, shortLong, units, price);
 				orders.add(order);
