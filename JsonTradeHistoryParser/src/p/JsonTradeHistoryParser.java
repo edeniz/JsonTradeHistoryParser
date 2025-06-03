@@ -1,20 +1,38 @@
 package p;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.NumberFormat;
-import java.util.*;
-
 public class JsonTradeHistoryParser {
 	//Elde kalanların satılması gereken fiyat: (ToplamAlisTutari-ToplamSatisTutari)/(toplamAlisLot-ToplamSatisLot)   + 0,15
 	
+	private static final String XLSX_FILE = "Book1.xlsx";
 	//private static final String INPUT_FILE = "20250430-20250528.json";
-	private static final String INPUT_FILE = "20250529tmp.json";
+	private static final String INPUT_FILE = "202506tmp.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
@@ -22,7 +40,7 @@ public class JsonTradeHistoryParser {
     private static final boolean printAlisSatis = false;
     private static final boolean generateOutput = false;
     private static final boolean aggregateOrders = true;
-    private static final List<String> contractsToFilter = List.of("F_TCELL0525", "F_TCELL0x25");
+    private static final List<String> contractsToFilter = List.of("F_TCELL0625", "F_TCELL0x25");
 
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
@@ -30,15 +48,12 @@ public class JsonTradeHistoryParser {
         formatter.setMaximumFractionDigits(2);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         try {
-            ArrayNode orderList = parseOrderListFromJsonFile();
+            ArrayNode orderListJson = parseOrderListFromJsonFile();
+            List<Order> orderListExcel = parseOrderListFromExcelFile();
             
-            generateCSV(orderList);
-
-            
-            List<Order> orders = populateOrders(orderList);
-            orders = aggregateOrders(orders);
+            List<Order> orders = populateOrders(orderListJson,orderListExcel);
             
             Map<String, Summary> summaryMap = new TreeMap<>();
             Summary totalSummary = new Summary();
@@ -46,6 +61,9 @@ public class JsonTradeHistoryParser {
             printDailySummary(summaryMap);
             printCumulativeSummary(totalSummary);
 
+            orders = aggregateOrders(orders);
+            
+            //generateCSV(orderList);
 
             Map<String, List<Order>> buys = new HashMap<>();
             Map<String, List<Order>> sells = new HashMap<>();
@@ -88,9 +106,10 @@ public class JsonTradeHistoryParser {
         }
     }
 
-    private static List<Order> populateOrders(ArrayNode orderList) {
+    private static List<Order> populateOrders(ArrayNode orderListJson, List<Order> orderListExcel) {
     	List<Order> orders = new ArrayList<Order>();
-        for (JsonNode order : orderList) {
+    	
+        for (JsonNode order : orderListJson) {
             String rawDate = order.path("TRANSACTION_DATE").asText();
             String date = rawDate.length() >= 10 ? rawDate.substring(0, 10) : rawDate;
             String shortLong = order.path("SHORT_LONG").asText().toUpperCase(Locale.ROOT);
@@ -101,6 +120,12 @@ public class JsonTradeHistoryParser {
             if(contractsToFilter.isEmpty() || contractsToFilter.contains(contract))
             	orders.add(new Order(date, contract, shortLong, units, price));
         }
+        
+        for (Order order : orderListExcel) { 
+            if(contractsToFilter.isEmpty() || contractsToFilter.contains(order.contract))
+            	orders.add(order);
+        }
+        
         return orders;
     }
     
@@ -233,6 +258,45 @@ public class JsonTradeHistoryParser {
         ArrayNode orderList = (ArrayNode) root.path("RESULT").path("HistoricOrderLists");
         return orderList;
     }
+
+	public static List<Order> parseOrderListFromExcelFile() throws Exception {
+		List<Order> orders = new ArrayList<>();
+
+		try (InputStream fis = new FileInputStream(XLSX_FILE); Workbook workbook = new XSSFWorkbook(fis)) {
+
+			Sheet sheet = workbook.getSheetAt(0);
+			boolean isFirstRow = true;
+
+			for (Row row : sheet) {
+				if (isFirstRow) {
+					isFirstRow = false;
+					continue; // skip header
+				}
+
+				Date rawDate = row.getCell(13).getDateCellValue();
+
+				// AY-GÜN-YIL gibi yorumla
+				SimpleDateFormat dayMonthYear = new SimpleDateFormat("MM.dd.yyyy");
+				String reversed = dayMonthYear.format(rawDate); // örn. "03.06.2025"
+
+				// reversed bir String olduğu için tekrar parse edilmesi gerekiyor
+				Date correctedDate = new SimpleDateFormat("dd.MM.yyyy").parse(reversed);
+
+				// şimdi formatla
+				String date = new SimpleDateFormat("yyyy-MM-dd").format(correctedDate); // örn. "2025-06-03"
+				String contract = row.getCell(3).toString(); // Sözleşme
+				String aOrS = row.getCell(4).toString(); // A/S
+				String shortLong = aOrS.equalsIgnoreCase("Alış") ? "UZUN" : "KISA";
+				int units = (int) row.getCell(9).getNumericCellValue(); // G.Miktar
+				double price = Double.parseDouble(row.getCell(7).toString().replace(",", ".")); // Fiyat
+
+				Order order = new Order(date, contract, shortLong, units, price);
+				orders.add(order);
+			}
+		}
+
+		return orders;
+	}
 
     private static void generateCSV(ArrayNode orderList) throws IOException {
     	if(!generateOutput)
