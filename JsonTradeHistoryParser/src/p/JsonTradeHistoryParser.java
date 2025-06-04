@@ -286,7 +286,7 @@ public class JsonTradeHistoryParser {
 				String date = new SimpleDateFormat("yyyy-MM-dd").format(correctedDate); // örn. "2025-06-03"
 				String contract = row.getCell(2).toString(); // Sözleşme
 				String aOrS = row.getCell(3).toString(); // A/S
-				String shortLong = aOrS.equalsIgnoreCase("Alış") ? "UZUN" : "KISA";
+				String shortLong = aOrS.equalsIgnoreCase("Alış") || aOrS.equalsIgnoreCase("UZUN") ? "UZUN" : "KISA";
 				int units = (int) row.getCell(5).getNumericCellValue(); // G.Miktar
 				double price = Double.parseDouble(row.getCell(4).toString().replace(",", ".")); // Fiyat
 
