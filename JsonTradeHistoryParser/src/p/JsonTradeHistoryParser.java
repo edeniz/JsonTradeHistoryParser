@@ -40,10 +40,12 @@ public class JsonTradeHistoryParser {
     private static final boolean printAlisSatis = false;
     private static final boolean generateOutput = false;
     private static final boolean aggregateOrders = true;
-    private static final List<String> contractsToFilter = List.of("F_TCELL0625", "F_TCELL0x25");
-
+    private static final List<String> contractsToFilter = new ArrayList<String>();
+    private static final List<String> daysToFilter = new ArrayList<String>();
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
+    	contractsToFilter.add("F_TCELL0625");
+    	daysToFilter.add("2025-06-05");
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
     }
@@ -117,12 +119,16 @@ public class JsonTradeHistoryParser {
             int units = (int) order.path("UNITS").asDouble();
             double price = order.path("PRICE").asDouble();
             
-            if(contractsToFilter.isEmpty() || contractsToFilter.contains(contract))
+            boolean contractFilter = contractsToFilter.isEmpty() || contractsToFilter.contains(contract);
+            boolean dayFilter = daysToFilter.isEmpty() || daysToFilter.contains(date);
+			if(contractFilter && dayFilter)
             	orders.add(new Order(date, contract, shortLong, units, price));
         }
         
         for (Order order : orderListExcel) { 
-            if(contractsToFilter.isEmpty() || contractsToFilter.contains(order.contract))
+            boolean contractFilter = contractsToFilter.isEmpty() || contractsToFilter.contains(order.contract);
+            boolean dayFilter = daysToFilter.isEmpty() || daysToFilter.contains(order.date);
+			if(contractFilter && dayFilter)
             	orders.add(order);
         }
         
