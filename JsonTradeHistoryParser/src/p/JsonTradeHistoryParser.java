@@ -17,7 +17,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -65,7 +64,7 @@ public class JsonTradeHistoryParser {
 
             orders = aggregateOrders(orders);
             
-            //generateCSV(orderList);
+            generateCSV(orders);
 
             Map<String, List<Order>> buys = new HashMap<>();
             Map<String, List<Order>> sells = new HashMap<>();
@@ -88,10 +87,10 @@ public class JsonTradeHistoryParser {
             double volume = units * price * 100;
             double commission = volume * COMMISSION_RATE;
 
-            if (order.shortLong.equals("KISA")) {
+            if (order.alisSatis.equals("SATIS")) {
                 summary.totalShort += units;
                 totalSummary.totalShort += units;
-            } else if (order.shortLong.equals("UZUN")) {
+            } else if (order.alisSatis.equals("ALIS")) {
                 summary.totalLong += units;
                 totalSummary.totalLong += units;
             }
@@ -114,7 +113,7 @@ public class JsonTradeHistoryParser {
         for (JsonNode order : orderListJson) {
             String rawDate = order.path("TRANSACTION_DATE").asText();
             String date = rawDate.length() >= 10 ? rawDate.substring(0, 10) : rawDate;
-            String shortLong = order.path("SHORT_LONG").asText().toUpperCase(Locale.ROOT);
+            String shortLong = order.path("SHORT_LONG").asText().toUpperCase(Locale.ROOT).equals("UZUN") ? "ALIS":"SATIS";
             String contract = order.path("CONTRACT").asText();
             int units = (int) order.path("UNITS").asDouble();
             double price = order.path("PRICE").asDouble();
@@ -141,13 +140,13 @@ public class JsonTradeHistoryParser {
     	
         Map<String, Order> aggregatedMap = new LinkedHashMap<>();
         for (Order order : orders) {
-            String key = order.contract + "|" + order.shortLong + "|" + order.price;
+            String key = order.contract + "|" + order.alisSatis + "|" + order.price;
             if (aggregatedMap.containsKey(key)) {
                 Order existing = aggregatedMap.get(key);
                 existing.units = existing.units + order.units;
             } else {
                 // Yeni nesne kopyası ile ekliyoruz ki orijinal liste etkilenmesin
-                aggregatedMap.put(key, new Order(order.date,order.contract,order.shortLong,order.units,order.price));
+                aggregatedMap.put(key, new Order(order.date,order.contract,order.alisSatis,order.units,order.price));
             }
         }
         return new ArrayList<>(aggregatedMap.values());
@@ -165,11 +164,11 @@ public class JsonTradeHistoryParser {
             Collections.sort(sellList);
 
             if(printAlisSatis) {
-	            System.out.println("\n" + key + " Alış İşlemler:");
-	            for (Order fail : buyList) System.out.println("- " + fail);
-	
 	            System.out.println("\n" + key + " Satış İşlemler:");
 	            for (Order fail : sellList) System.out.println("- " + fail);
+	            
+	            System.out.println("\n" + key + " Alış İşlemler:");
+	            for (Order fail : buyList) System.out.println("- " + fail);
             }
             System.out.println("\nBaşarılı:");
             for (int b = 0; b < buyList.size(); b++) {
@@ -226,9 +225,9 @@ public class JsonTradeHistoryParser {
     private static void generateBuyAndSellList(List<Order> orders, Map<String, List<Order>> buys, Map<String, List<Order>> sells) {
         for (Order o : orders) {
             String key = o.contract;
-            if (o.shortLong.equals("UZUN")) {
+            if (o.alisSatis.equals("ALIS")) {
                 buys.computeIfAbsent(key, k -> new ArrayList<>()).add(o);
-            } else if (o.shortLong.equals("KISA")) {
+            } else if (o.alisSatis.equals("SATIS")) {
                 sells.computeIfAbsent(key, k -> new ArrayList<>()).add(o);
             }
         }
@@ -292,7 +291,7 @@ public class JsonTradeHistoryParser {
 				String date = new SimpleDateFormat("yyyy-MM-dd").format(correctedDate); // örn. "2025-06-03"
 				String contract = row.getCell(2).toString(); // Sözleşme
 				String aOrS = row.getCell(3).toString(); // A/S
-				String shortLong = aOrS.equalsIgnoreCase("Alış") || aOrS.equalsIgnoreCase("UZUN") ? "UZUN" : "KISA";
+				String shortLong = aOrS.equalsIgnoreCase("Alış") || aOrS.equalsIgnoreCase("UZUN") ? "ALIS" : "SATIS";
 				int units = (int) row.getCell(5).getNumericCellValue(); // G.Miktar
 				double price = Double.parseDouble(row.getCell(4).toString().replace(",", ".")); // Fiyat
 
@@ -304,22 +303,15 @@ public class JsonTradeHistoryParser {
 		return orders;
 	}
 
-    private static void generateCSV(ArrayNode orderList) throws IOException {
+    private static void generateCSV(List<Order> orders) throws IOException {
     	if(!generateOutput)
     		return;
     	
         try (FileWriter csvWriter = new FileWriter(OUTPUT_FILE)) {
             csvWriter.append("date,contract,shortLong,units,price\n");
 
-            for (JsonNode order : orderList) {
-                String rawDate = order.path("TRANSACTION_DATE").asText();
-                String date = rawDate.length() >= 10 ? rawDate.substring(0, 10) : rawDate;
-                String shortLong = order.path("SHORT_LONG").asText().toUpperCase(Locale.ROOT);
-                String contract = order.path("CONTRACT").asText();
-                int units = (int) order.path("UNITS").asDouble();
-                double price = order.path("PRICE").asDouble();
-
-                csvWriter.append(String.format(Locale.US, "%s,%s,%s,%d,%.2f\n", date, contract, shortLong, units, price));
+            for (Order o : orders) {
+                csvWriter.append(String.format(Locale.US, "%s,%s,%s,%d,%.2f\n", o.date, o.contract, o.alisSatis, o.units, o.price));
             }
 
             System.out.println("CSV dosyası başarıyla oluşturuldu: output.csv");
@@ -330,7 +322,7 @@ public class JsonTradeHistoryParser {
     static class Order implements Comparable<Order> {
         String date;
         String contract;
-        String shortLong;
+        String alisSatis;
         int units;
         double price;
         int matchedUnits;
@@ -338,16 +330,11 @@ public class JsonTradeHistoryParser {
         public Order(String date, String contract, String shortLong, int units, double price) {
             this.date = date;
             this.contract = contract;
-            this.shortLong = shortLong;
+            this.alisSatis = shortLong;
             this.units = units;
             this.matchedUnits = 0;
             this.price = price;
         }
-
-        public void units (int i) {
-			// TODO Auto-generated method stub
-			
-		}
 
 		public int remaining() {
             return this.units - this.matchedUnits;
@@ -355,7 +342,7 @@ public class JsonTradeHistoryParser {
 
         @Override
         public String toString() {
-            return String.format("%s | %s | %d/%d | %.2f", contract, shortLong, remaining(), units, price);
+            return String.format("%s | %s | %d/%d | %.2f", contract, alisSatis, remaining(), units, price);
         }
 
         @Override
