@@ -44,7 +44,7 @@ public class JsonTradeHistoryParser {
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
     	contractsToFilter.add("F_TCELL0625");
-    	daysToFilter.add("2025-06-05");
+    	//daysToFilter.add("2025-06-05");
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
     }
@@ -278,17 +278,25 @@ public class JsonTradeHistoryParser {
 					continue; // skip header
 				}
 
-				Date rawDate = row.getCell(1).getDateCellValue();
+				String rawDateStr = row.getCell(1).toString();//30/05/2025 yada 06-Feb-2025
+				String date=null;
+				
+				if(rawDateStr.contains("-")) {
+					Date rawDate = row.getCell(1).getDateCellValue();
 
-				// AY-GÜN-YIL gibi yorumla
-				SimpleDateFormat dayMonthYear = new SimpleDateFormat("MM.dd.yyyy");
-				String reversed = dayMonthYear.format(rawDate); // örn. "03.06.2025"
+					// AY-GÜN-YIL gibi yorumla
+					SimpleDateFormat dayMonthYear = new SimpleDateFormat("MM.dd.yyyy");
+					String reversed = dayMonthYear.format(rawDate); // örn. "03.06.2025"
 
-				// reversed bir String olduğu için tekrar parse edilmesi gerekiyor
-				Date correctedDate = new SimpleDateFormat("dd.MM.yyyy").parse(reversed);
+					// reversed bir String olduğu için tekrar parse edilmesi gerekiyor
+					Date correctedDate = new SimpleDateFormat("dd.MM.yyyy").parse(reversed);
+					// şimdi formatla
+					date = new SimpleDateFormat("yyyy-MM-dd").format(correctedDate); // örn. "2025-06-03"					
+				}else {
+					Date correctedDate = new SimpleDateFormat("dd/MM/yyyy").parse(rawDateStr);
+					date = new SimpleDateFormat("yyyy-MM-dd").format(correctedDate); // örn. "2025-06-03"
+				}
 
-				// şimdi formatla
-				String date = new SimpleDateFormat("yyyy-MM-dd").format(correctedDate); // örn. "2025-06-03"
 				String contract = row.getCell(2).toString(); // Sözleşme
 				String aOrS = row.getCell(3).toString(); // A/S
 				String shortLong = aOrS.equalsIgnoreCase("Alış") || aOrS.equalsIgnoreCase("UZUN") ? "ALIS" : "SATIS";
