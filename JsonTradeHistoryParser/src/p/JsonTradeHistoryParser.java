@@ -37,6 +37,7 @@ public class JsonTradeHistoryParser {
     private static final double MARJ_MAX = 0.171;
     private static final double COMMISSION_RATE = 1.478 / 10_000;
     private static final boolean printAlisSatis = false;
+    private static final boolean printBasarili = false;
     private static final boolean generateOutput = false;
     private static final boolean aggregateOrders = true;
     private static final List<String> contractsToFilter = new ArrayList<String>();
@@ -44,7 +45,20 @@ public class JsonTradeHistoryParser {
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
     	contractsToFilter.add("F_TCELL0625");
-    	//daysToFilter.add("2025-06-05");
+    	/**/daysToFilter.add("2025-05-30");
+    	daysToFilter.add("2025-06-02");
+    	daysToFilter.add("2025-06-03");
+    	daysToFilter.add("2025-06-04");
+    	daysToFilter.add("2025-06-05");
+    	daysToFilter.add("2025-06-10");
+    	daysToFilter.add("2025-06-11");
+    	daysToFilter.add("2025-06-12");
+    	daysToFilter.add("2025-06-13");
+    	daysToFilter.add("2025-06-16");
+    	daysToFilter.add("2025-06-17");
+    	daysToFilter.add("2025-06-18");
+    	daysToFilter.add("2025-06-19");
+    	daysToFilter.add("2025-06-20");
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
     }
@@ -170,7 +184,9 @@ public class JsonTradeHistoryParser {
 	            System.out.println("\n" + key + " Alış İşlemler:");
 	            for (Order fail : buyList) System.out.println("- " + fail);
             }
-            System.out.println("\nBaşarılı:");
+            if(printBasarili) {
+            	System.out.println("\nBaşarılı:");
+            }
             for (int b = 0; b < buyList.size(); b++) {
                 Order buy = buyList.get(b);
                 for (int s = 0; s < sellList.size(); s++) {
@@ -182,9 +198,11 @@ public class JsonTradeHistoryParser {
                         sell.matchedUnits += substractUnit;
                         buy.matchedUnits += substractUnit;
 
-                        System.out.print("--"    + String.format("%s | %2d/%-2d | %.2f", buy.contract, substractUnit, buy.units, buy.price));
-                        System.out.println(" - " + String.format("%s | %2d/%-2d | %.2f", sell.contract, substractUnit, sell.units, sell.price));
-
+                        if(printBasarili) {
+	                        System.out.print("--"    + String.format("%s | %2d/%-2d | %.2f", buy.contract, substractUnit, buy.units, buy.price));
+	                        System.out.println(" - " + String.format("%s | %2d/%-2d | %.2f", sell.contract, substractUnit, sell.units, sell.price));
+                        }
+                        
                         successfulUnits += substractUnit;
                         totalProfit += (substractUnit * (sell.price - buy.price) * 100);
 
