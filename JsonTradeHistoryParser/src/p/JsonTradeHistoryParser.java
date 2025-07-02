@@ -29,9 +29,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 public class JsonTradeHistoryParser {
 	//Elde kalanların satılması gereken fiyat: (ToplamAlisTutari-ToplamSatisTutari)/(toplamAlisLot-ToplamSatisLot)   + 0,15
 	
-	private static final String XLSX_FILE = "Book2.xlsx";
+	private static final String XLSX_FILE = "202507.xlsx";
 	//private static final String INPUT_FILE = "20250430-20250528.json";
-	private static final String INPUT_FILE = "202506tmp.json";
+	private static final String INPUT_FILE = "202507.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
@@ -44,21 +44,13 @@ public class JsonTradeHistoryParser {
     private static final List<String> daysToFilter = new ArrayList<String>();
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
-    	contractsToFilter.add("F_TCELL0625");
-    	/**/daysToFilter.add("2025-05-30");
-    	daysToFilter.add("2025-06-02");
-    	daysToFilter.add("2025-06-03");
-    	daysToFilter.add("2025-06-04");
-    	daysToFilter.add("2025-06-05");
-    	daysToFilter.add("2025-06-10");
-    	daysToFilter.add("2025-06-11");
-    	daysToFilter.add("2025-06-12");
-    	daysToFilter.add("2025-06-13");
-    	daysToFilter.add("2025-06-16");
-    	daysToFilter.add("2025-06-17");
-    	daysToFilter.add("2025-06-18");
-    	daysToFilter.add("2025-06-19");
-    	daysToFilter.add("2025-06-20");
+    	contractsToFilter.add("F_TCELL0725");
+    	/*daysToFilter.add("2025-06-30"); 
+    	daysToFilter.add("2025-07-01");*/
+    	daysToFilter.add("2025-07-02");
+    	daysToFilter.add("2025-07-03");
+    	daysToFilter.add("2025-07-04");
+    	daysToFilter.add("2025-07-07");
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
     }
