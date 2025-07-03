@@ -45,8 +45,8 @@ public class JsonTradeHistoryParser {
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
     	contractsToFilter.add("F_TCELL0725");
-    	/*daysToFilter.add("2025-06-30"); 
-    	daysToFilter.add("2025-07-01");*/
+    	/**/daysToFilter.add("2025-06-30"); 
+    	daysToFilter.add("2025-07-01");
     	daysToFilter.add("2025-07-02");
     	daysToFilter.add("2025-07-03");
     	daysToFilter.add("2025-07-04");
@@ -211,7 +211,7 @@ public class JsonTradeHistoryParser {
             System.out.print("\n" + key + " Başarısız Alış İşlemler:");
             for (Order fail : buyList)
                 if (fail.remaining() > 0) {
-                	System.out.print("\n- " + fail);
+                	System.out.print("\n- " + fail + " (" + formatter.format((fail.price+0.15)) + ")");
                 	totalRemaining += fail.remaining();
                 	totalAmount    += fail.remaining()*fail.price;
                 }
@@ -223,7 +223,7 @@ public class JsonTradeHistoryParser {
             System.out.print("\n" + key + " Başarısız Satış İşlemler:");
             for (Order fail : sellList)
                 if (fail.remaining() > 0) {
-                	System.out.print("\n- " + fail);
+                	System.out.print("\n- " + fail + " (" +  formatter.format((fail.price-0.15)) + ")");
                 	totalRemaining += fail.remaining();
                 	totalAmount    += fail.remaining()*fail.price;
                 }
@@ -360,7 +360,7 @@ public class JsonTradeHistoryParser {
 
         @Override
         public String toString() {
-            return String.format("%s | %s | %d/%d | %.2f", contract, alisSatis, remaining(), units, price);
+            return String.format("%s | %s | %2d/%-2d | %.2f", contract, alisSatis, remaining(), units, price);
         }
 
         @Override
