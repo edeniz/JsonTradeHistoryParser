@@ -29,9 +29,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 public class JsonTradeHistoryParser {
 	//Elde kalanların satılması gereken fiyat: (ToplamAlisTutari-ToplamSatisTutari)/(toplamAlisLot-ToplamSatisLot)   + 0,15
 	
-	private static final String XLSX_FILE = "202507.xlsx";
+	private static final String XLSX_FILE = "202508.xlsx";
 	//private static final String INPUT_FILE = "20250430-20250528.json";
-	private static final String INPUT_FILE = "202507.json";
+	private static final String INPUT_FILE = "202508.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
@@ -44,13 +44,19 @@ public class JsonTradeHistoryParser {
     private static final List<String> daysToFilter = new ArrayList<String>();
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
-    	contractsToFilter.add("F_TCELL0725");
-    	/**/daysToFilter.add("2025-06-30"); 
-    	daysToFilter.add("2025-07-01");
-    	daysToFilter.add("2025-07-02");
-    	daysToFilter.add("2025-07-03");
-    	daysToFilter.add("2025-07-04");
-    	daysToFilter.add("2025-07-07");
+    	contractsToFilter.add("F_TCELL0825");
+    	/**/daysToFilter.add("2025-07-31"); 
+    	daysToFilter.add("2025-08-01");
+    	daysToFilter.add("2025-08-04");
+    	daysToFilter.add("2025-08-05");
+    	daysToFilter.add("2025-08-06");
+    	daysToFilter.add("2025-08-07");
+    	daysToFilter.add("2025-08-08");
+    	daysToFilter.add("2025-08-11"); 
+    	daysToFilter.add("2025-08-12");  
+    	daysToFilter.add("2025-08-13"); 
+    	daysToFilter.add("2025-08-14"); 
+    	daysToFilter.add("2025-08-15");   	
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
     }
@@ -254,15 +260,15 @@ public class JsonTradeHistoryParser {
 
     private static void printDailySummary(Map<String, Summary> summaryMap) {
         System.out.println("\nGünlük Özet Bilgiler:");
-        System.out.printf("%-12s | %-15s | %-7s | %-7s | %-10s | %-15s | %-15s%n", "Tarih", "Kontrat", "Short", "Long", "Units", "Hacim", "Komisyon");
+        System.out.printf("%-10s | %-11s | %-5s | %-5s | %-5s | %-13s | %-10s%n", "Tarih", "Kontrat", "Long", "Short", "Units", "Hacim", "Komisyon");
 
         for (Map.Entry<String, Summary> entry : summaryMap.entrySet()) {
             String[] parts = entry.getKey().split("\\|");
             String date = parts[0];
             String contract = parts[1];
             Summary s = entry.getValue();
-            System.out.printf("%-12s | %-15s | %-7d | %-7d | %-10d | %15s | %15s%n", date, contract, s.totalShort,
-                    s.totalLong, (int) s.totalUnits, formatter.format(s.totalVolume),
+            System.out.printf("%-10s | %-11s | %-5d | %-5d | %-5d | %13s | %10s%n", date, contract,
+                    s.totalLong, s.totalShort, (int) s.totalUnits, formatter.format(s.totalVolume),
                     formatter.format(s.totalCommission));
         }
     }
