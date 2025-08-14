@@ -260,14 +260,14 @@ public class JsonTradeHistoryParser {
 
     private static void printDailySummary(Map<String, Summary> summaryMap) {
         System.out.println("\nGünlük Özet Bilgiler:");
-        System.out.printf("%-10s | %-11s | %-4s | %-4s | %-4s | %-13s | %-10s%n", "Tarih", "Kontrat", "Long", "Shrt", "Unts", "Hacim", "Komisyon");
+        System.out.printf("%-10s | %-11s | %-4s | %-4s | %-4s | %-13s | %-7s%n", "  Tarih", "  Kontrat", "Long", "Shrt", "Unts", "    Hacim", " Komsyn");
 
         for (Map.Entry<String, Summary> entry : summaryMap.entrySet()) {
             String[] parts = entry.getKey().split("\\|");
             String date = parts[0];
             String contract = parts[1];
             Summary s = entry.getValue();
-            System.out.printf("%-10s | %-11s | %-4d | %-4d | %-4d | %13s | %10s%n", date, contract,
+            System.out.printf("%-10s | %-11s | %-4d | %-4d | %-4d | %13s | %7s%n", date, contract,
                     s.totalLong, s.totalShort, (int) s.totalUnits, formatter.format(s.totalVolume),
                     formatter.format(s.totalCommission));
         }
