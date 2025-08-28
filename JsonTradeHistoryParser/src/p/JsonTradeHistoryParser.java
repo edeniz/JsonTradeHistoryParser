@@ -35,7 +35,7 @@ public class JsonTradeHistoryParser {
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
-    private static final double COMMISSION_RATE = 1.478 / 10_000;
+    private static final double COMMISSION_RATE = 1.336 / 10_000;
     private static final boolean printAlisSatis = false;
     private static final boolean printBasarili = false;
     private static final boolean generateOutput = false;
@@ -56,7 +56,17 @@ public class JsonTradeHistoryParser {
     	daysToFilter.add("2025-08-12");  
     	daysToFilter.add("2025-08-13"); 
     	daysToFilter.add("2025-08-14"); 
-    	daysToFilter.add("2025-08-15");   	
+    	daysToFilter.add("2025-08-15");  
+    	daysToFilter.add("2025-08-18");  
+    	daysToFilter.add("2025-08-19");  
+    	daysToFilter.add("2025-08-20");  
+    	daysToFilter.add("2025-08-21");  
+    	daysToFilter.add("2025-08-22");  
+    	daysToFilter.add("2025-08-25");  
+    	daysToFilter.add("2025-08-26");  
+    	daysToFilter.add("2025-08-27");  
+    	daysToFilter.add("2025-08-28");  
+    	daysToFilter.add("2025-08-29");   	
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
     }
@@ -273,11 +283,15 @@ public class JsonTradeHistoryParser {
         }
     }
 
-    private static ArrayNode parseOrderListFromJsonFile() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(new File(INPUT_FILE));
-        ArrayNode orderList = (ArrayNode) root.path("RESULT").path("HistoricOrderLists");
-        return orderList;
+    private static ArrayNode parseOrderListFromJsonFile(){
+    	ArrayNode orderList = new ArrayNode(null);
+        try {
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode root = mapper.readTree(new File(INPUT_FILE));
+			orderList = (ArrayNode) root.path("RESULT").path("HistoricOrderLists");
+		} catch (IOException e) {
+		}
+		return orderList;
     }
 
 	public static List<Order> parseOrderListFromExcelFile() throws Exception {
