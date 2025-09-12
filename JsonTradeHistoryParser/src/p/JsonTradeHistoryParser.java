@@ -55,7 +55,12 @@ public class JsonTradeHistoryParser {
     	daysToFilter.add("2025-09-09");  
     	daysToFilter.add("2025-09-10");  
     	daysToFilter.add("2025-09-11");  
-    	daysToFilter.add("2025-09-12");   
+    	daysToFilter.add("2025-09-12");  
+    	daysToFilter.add("2025-09-15");  
+    	daysToFilter.add("2025-09-16");  
+    	daysToFilter.add("2025-09-17");    	  
+    	daysToFilter.add("2025-09-18");  
+    	daysToFilter.add("2025-09-19");
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
     }
