@@ -29,9 +29,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 public class JsonTradeHistoryParser {
 	//Elde kalanların satılması gereken fiyat: (ToplamAlisTutari-ToplamSatisTutari)/(toplamAlisLot-ToplamSatisLot)   + 0,15
 	
-	private static final String XLSX_FILE = "202509.xlsx";
+	private static final String XLSX_FILE = "202510.xlsx";
 	//private static final String INPUT_FILE = "20250430-20250528.json";
-	private static final String INPUT_FILE = "202509.json";
+	private static final String INPUT_FILE = "202510.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.139;
     private static final double MARJ_MAX = 0.171;
@@ -44,23 +44,21 @@ public class JsonTradeHistoryParser {
     private static final List<String> daysToFilter = new ArrayList<String>();
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
-    	contractsToFilter.add("F_TCELL0925");
-    	/**/daysToFilter.add("2025-08-29");  
-    	daysToFilter.add("2025-09-01");  
-    	daysToFilter.add("2025-09-02");   
-    	daysToFilter.add("2025-09-03");   
-    	daysToFilter.add("2025-09-04");   
-    	daysToFilter.add("2025-09-05");  
-    	daysToFilter.add("2025-09-08");  
-    	daysToFilter.add("2025-09-09");  
-    	daysToFilter.add("2025-09-10");  
-    	daysToFilter.add("2025-09-11");  
-    	daysToFilter.add("2025-09-12");  
-    	daysToFilter.add("2025-09-15");  
-    	daysToFilter.add("2025-09-16");  
-    	daysToFilter.add("2025-09-17");    	  
-    	daysToFilter.add("2025-09-18");  
-    	daysToFilter.add("2025-09-19");
+    	contractsToFilter.add("F_TCELL1025");
+    	if(System.getProperty("gun","").equals("all")) {
+        	daysToFilter.add("2025-09-29");  
+        	daysToFilter.add("2025-09-30");  
+        	daysToFilter.add("2025-10-01");  
+        	daysToFilter.add("2025-10-02");   
+        	daysToFilter.add("2025-10-03"); 
+        	daysToFilter.add("2025-10-06");  
+        	daysToFilter.add("2025-10-07");  
+        	daysToFilter.add("2025-10-08");  
+        	daysToFilter.add("2025-10-09");  
+        	daysToFilter.add("2025-10-10");     		
+    	}else 
+    		daysToFilter.add("2025-10-07");
+ 
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
     }
