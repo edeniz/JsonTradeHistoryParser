@@ -30,6 +30,7 @@ public class JsonTradeHistoryParser {
 	//Elde kalanların satılması gereken fiyat: (ToplamAlisTutari-ToplamSatisTutari)/(toplamAlisLot-ToplamSatisLot)   + 0,15
 	
 	private static final String XLSX_FILE = "202510.xlsx";
+	private static final String XLSXdevir_FILE = "202510adevir.xlsx";
 	//private static final String INPUT_FILE = "20250430-20250528.json";
 	private static final String INPUT_FILE = "202510.json";
     private static final String OUTPUT_FILE = "output.csv";
@@ -66,8 +67,9 @@ public class JsonTradeHistoryParser {
     public static void main(String[] args) throws Exception {
         try {
             ArrayNode orderListJson = parseOrderListFromJsonFile();
-            List<Order> orderListExcel = parseOrderListFromExcelFile();
-            
+            List<Order> orderListExcel = parseOrderListFromExcelFile(XLSX_FILE);
+            List<Order> orderListDevirExcel = parseOrderListFromExcelFile(XLSXdevir_FILE);
+            orderListExcel.addAll(orderListDevirExcel);
             List<Order> orders = populateOrders(orderListJson,orderListExcel);
             
             Map<String, Summary> summaryMap = new TreeMap<>();
@@ -286,10 +288,10 @@ public class JsonTradeHistoryParser {
 		return orderList;
     }
 
-	public static List<Order> parseOrderListFromExcelFile() throws Exception {
+	public static List<Order> parseOrderListFromExcelFile(String file) throws Exception {
 		List<Order> orders = new ArrayList<>();
 
-		try (InputStream fis = new FileInputStream(XLSX_FILE); Workbook workbook = new XSSFWorkbook(fis)) {
+		try (InputStream fis = new FileInputStream(file); Workbook workbook = new XSSFWorkbook(fis)) {
 
 			Sheet sheet = workbook.getSheetAt(0);
 			boolean isFirstRow = true;
