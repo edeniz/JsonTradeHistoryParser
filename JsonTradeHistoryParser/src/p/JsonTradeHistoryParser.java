@@ -34,8 +34,8 @@ public class JsonTradeHistoryParser {
 	//private static final String INPUT_FILE = "20250430-20250528.json";
 	private static final String INPUT_FILE = "202510.json";
     private static final String OUTPUT_FILE = "output.csv";
-    private static final double MARJ_MIN = 0.139;
-    private static final double MARJ_MAX = 0.171;
+    private static final double MARJ_MIN = 0.149;
+    private static final double MARJ_MAX = 0.151;
     private static final double COMMISSION_RATE = 1.336 / 10_000;
     private static final boolean printAlisSatis = false;
     private static final boolean printBasarili = false;
@@ -61,9 +61,14 @@ public class JsonTradeHistoryParser {
         	daysToFilter.add("2025-10-14");  
         	daysToFilter.add("2025-10-15");  
         	daysToFilter.add("2025-10-16");  
-        	daysToFilter.add("2025-10-17");     		
+        	daysToFilter.add("2025-10-17"); 
+        	daysToFilter.add("2025-10-20");  
+        	daysToFilter.add("2025-10-21");  
+        	daysToFilter.add("2025-10-22");  
+        	daysToFilter.add("2025-10-23");  
+        	daysToFilter.add("2025-10-24");      		
     	}else 
-    		daysToFilter.add("2025-10-13");
+    		daysToFilter.add("2025-10-17");
  
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
