@@ -29,46 +29,34 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 public class JsonTradeHistoryParser {
 	//Elde kalanların satılması gereken fiyat: (ToplamAlisTutari-ToplamSatisTutari)/(toplamAlisLot-ToplamSatisLot)   + 0,15
 	
-	private static final String XLSX_FILE = "202510.xlsx";
-	private static final String XLSXdevir_FILE = "202510adevir.xlsx";
+	private static final String XLSX_FILE = "202511.xlsx";
+	private static final String XLSXdevir_FILE = "202511adeviry.xlsx";
 	//private static final String INPUT_FILE = "20250430-20250528.json";
-	private static final String INPUT_FILE = "202510.json";
+	private static final String INPUT_FILE = "202511.json";
     private static final String OUTPUT_FILE = "output.csv";
     private static final double MARJ_MIN = 0.149;
-    private static final double MARJ_MAX = 0.151;
+    private static final double MARJ_MAX = 0.161;
     private static final double COMMISSION_RATE = 1.336 / 10_000;
     private static final boolean printAlisSatis = false;
     private static final boolean printBasarili = false;
     private static final boolean generateOutput = false;
     private static final boolean aggregateOrders = true;
+    private static final boolean processDevirExcel = true;
     private static final List<String> contractsToFilter = new ArrayList<String>();
     private static final List<String> daysToFilter = new ArrayList<String>();
     private static final NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
     static {
-    	contractsToFilter.add("F_TCELL1025");
+    	contractsToFilter.add("F_TCELL1125");
     	if(System.getProperty("gun","").equals("all")) {
-        	daysToFilter.add("2025-09-29");  
-        	daysToFilter.add("2025-09-30");  
-        	daysToFilter.add("2025-10-01");  
-        	daysToFilter.add("2025-10-02");   
-        	daysToFilter.add("2025-10-03"); 
-        	daysToFilter.add("2025-10-06");  
-        	daysToFilter.add("2025-10-07");  
-        	daysToFilter.add("2025-10-08");  
-        	daysToFilter.add("2025-10-09");  
-        	daysToFilter.add("2025-10-10");  
-        	daysToFilter.add("2025-10-13");  
-        	daysToFilter.add("2025-10-14");  
-        	daysToFilter.add("2025-10-15");  
-        	daysToFilter.add("2025-10-16");  
-        	daysToFilter.add("2025-10-17"); 
-        	daysToFilter.add("2025-10-20");  
-        	daysToFilter.add("2025-10-21");  
-        	daysToFilter.add("2025-10-22");  
-        	daysToFilter.add("2025-10-23");  
-        	daysToFilter.add("2025-10-24");      		
+        	daysToFilter.add("2025-10-30");  
+        	daysToFilter.add("2025-10-31");  
+        	daysToFilter.add("2025-11-03");   
+        	daysToFilter.add("2025-11-04");  
+        	daysToFilter.add("2025-11-05");  
+        	daysToFilter.add("2025-11-06");  
+        	daysToFilter.add("2025-11-07"); 		
     	}else 
-    		daysToFilter.add("2025-10-17");
+    		daysToFilter.add("2025-11-06");
  
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
@@ -77,9 +65,11 @@ public class JsonTradeHistoryParser {
     public static void main(String[] args) throws Exception {
         try {
             ArrayNode orderListJson = parseOrderListFromJsonFile();
-            List<Order> orderListExcel = parseOrderListFromExcelFile(XLSX_FILE);
-            List<Order> orderListDevirExcel = parseOrderListFromExcelFile(XLSXdevir_FILE);
-            orderListExcel.addAll(orderListDevirExcel);
+            List<Order> orderListExcel = parseOrderListFromExcelFile(XLSX_FILE, true);
+            if(processDevirExcel) {
+            	List<Order> orderListDevirExcel = parseOrderListFromExcelFile(XLSXdevir_FILE, false);
+            	orderListExcel.addAll(orderListDevirExcel);
+            }
             List<Order> orders = populateOrders(orderListJson,orderListExcel);
             
             Map<String, Summary> summaryMap = new TreeMap<>();
@@ -110,7 +100,7 @@ public class JsonTradeHistoryParser {
 
             int units = order.units;
             double price = order.price;
-            double volume = units * price * 100;
+            double volume = order.includeVolume ? (units * price * 100):0;
             double commission = volume * COMMISSION_RATE;
 
             if (order.alisSatis.equals("SATIS")) {
@@ -147,7 +137,7 @@ public class JsonTradeHistoryParser {
             boolean contractFilter = contractsToFilter.isEmpty() || contractsToFilter.contains(contract);
             boolean dayFilter = daysToFilter.isEmpty() || daysToFilter.contains(date);
 			if(contractFilter && dayFilter)
-            	orders.add(new Order(date, contract, shortLong, units, price));
+            	orders.add(new Order(date, contract, shortLong, units, price, true));
         }
         
         for (Order order : orderListExcel) { 
@@ -172,7 +162,7 @@ public class JsonTradeHistoryParser {
                 existing.units = existing.units + order.units;
             } else {
                 // Yeni nesne kopyası ile ekliyoruz ki orijinal liste etkilenmesin
-                aggregatedMap.put(key, new Order(order.date,order.contract,order.alisSatis,order.units,order.price));
+                aggregatedMap.put(key, new Order(order.date,order.contract,order.alisSatis,order.units,order.price,order.includeVolume));
             }
         }
         return new ArrayList<>(aggregatedMap.values());
@@ -298,7 +288,7 @@ public class JsonTradeHistoryParser {
 		return orderList;
     }
 
-	public static List<Order> parseOrderListFromExcelFile(String file) throws Exception {
+	public static List<Order> parseOrderListFromExcelFile(String file, boolean includeVolume) throws Exception {
 		List<Order> orders = new ArrayList<>();
 
 		try (InputStream fis = new FileInputStream(file); Workbook workbook = new XSSFWorkbook(fis)) {
@@ -337,9 +327,11 @@ public class JsonTradeHistoryParser {
 				int units = (int) row.getCell(5).getNumericCellValue(); // G.Miktar
 				double price = Double.parseDouble(row.getCell(4).toString().replace(",", ".")); // Fiyat
 
-				Order order = new Order(date, contract, shortLong, units, price);
+				Order order = new Order(date, contract, shortLong, units, price, includeVolume);
 				orders.add(order);
 			}
+		}catch (Exception e) {
+			e.printStackTrace();
 		}
 
 		return orders;
@@ -368,14 +360,17 @@ public class JsonTradeHistoryParser {
         int units;
         double price;
         int matchedUnits;
+        boolean includeVolume=true;
 
-        public Order(String date, String contract, String shortLong, int units, double price) {
+ 
+        public Order(String date, String contract, String shortLong, int units, double price, boolean includeVolume) {
             this.date = date;
             this.contract = contract;
             this.alisSatis = shortLong;
             this.units = units;
             this.matchedUnits = 0;
             this.price = price;
+            this.includeVolume=includeVolume;
         }
 
 		public int remaining() {
